@@ -73,5 +73,9 @@ parser.add_argument('--use_cuda', action='store_true',
                     help='use cuda')
 
 hps = parser.parse_args()
-
 hps.use_cuda = hps.use_cuda and torch.cuda.is_available()
+
+# for lang-model
+hps.max_steps = hps.max_dec_steps
+hps.torch = True
+hps.sort_by = 'dec'

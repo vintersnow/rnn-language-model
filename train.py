@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from hyperparams import hps
 from tensorboardX import SummaryWriter
-from data_batcher import Batcher, Vocab, PAD_TOKEN
-from utils import (get_logger, DEBUG, OneLinePrint, optimzier, Saver)
+from data_batcher import Batcher, Vocab, PAD_TOKEN, restore_text
+from utils import (get_logger, DEBUG, OneLinePrint, optimzier, Saver, tonp)
 import numpy as np
 
 logger = get_logger(__name__, DEBUG)
@@ -52,7 +52,6 @@ def train():
         batch = batcher.next_batch()
         (inputs, inp_lens, inp_pad, dec_inps, targets, dec_lens,
          dec_pad) = batch.expand(hps.use_cuda)
-        print('dec', dec_inps.size())
 
         outputs = model(dec_inps, dec_lens)  # output: (B*T*(1~3)U)
         loss = criterion(outputs.view(-1, vocab.size()), targets.view(-1))
@@ -89,8 +88,12 @@ def train():
     if hps.store_summary:
         writer.close()
 
+    logger.info('start infer mode')
+    outputs = model(None, None, 'infer')
+    _, pred = torch.max(outputs, 1)
+    pred = tonp(pred)
+    logger.info('pred: %s' % restore_text(pred, vocab))
+
 
 if __name__ == '__main__':
-    hps.torch = True
-    hps.sort_by = 'dec'
     train()
