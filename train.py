@@ -31,7 +31,8 @@ def train():
 
     opt = optimzier(hps.opt, model.parameters())
 
-    saver = Saver(hps.ckpt_path, hps.ckpt_name, model)
+    if hps.ckpt_name != '':
+        saver = Saver(hps.ckpt_path, hps.ckpt_name, model)
 
     # for store summary
     if hps.store_summary:
@@ -66,7 +67,7 @@ def train():
 
         # Utils ---------------------------------------------------------------
         # save checkpoint
-        if step % hps.ckpt_steps == 0:
+        if step % hps.ckpt_steps == 0 and hps.ckpt_name != '':
             saver.save(step, loss.data[0])
             olp.write('save checkpoint (step=%d)\n' % step)
 

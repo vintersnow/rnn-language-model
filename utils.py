@@ -7,7 +7,7 @@ import torch
 from torch.autograd import Variable
 from os import path, mkdir, rename
 import itertools
-from pythonrouge.pythonrouge import Pythonrouge
+# from pythonrouge.pythonrouge import Pythonrouge
 
 
 def get_logger(name, level=INFO, output_file=None):
@@ -69,28 +69,28 @@ class Timer(object):
         return lap, all
 
 
-def rouge_score(summary, reference):
-        rouge = Pythonrouge(
-            summary_file_exist=False,
-            summary=summary,
-            reference=reference,
-            n_gram=3,
-            ROUGE_SU4=True,
-            ROUGE_L=False,
-            recall_only=False,
-            stemming=True,
-            stopwords=True,
-            word_level=True,
-            length_limit=True,
-            length=50,
-            use_cf=False,
-            cf=95,
-            scoring_formula='average',
-            resampling=True,
-            samples=1000,
-            favor=True,
-            p=0.5)
-        return rouge.calc_score()
+# def rouge_score(summary, reference):
+#         rouge = Pythonrouge(
+#             summary_file_exist=False,
+#             summary=summary,
+#             reference=reference,
+#             n_gram=3,
+#             ROUGE_SU4=True,
+#             ROUGE_L=False,
+#             recall_only=False,
+#             stemming=True,
+#             stopwords=True,
+#             word_level=True,
+#             length_limit=True,
+#             length=50,
+#             use_cf=False,
+#             cf=95,
+#             scoring_formula='average',
+#             resampling=True,
+#             samples=1000,
+#             favor=True,
+#             p=0.5)
+#         return rouge.calc_score()
 
 ###############################################################################
 # Torch utils

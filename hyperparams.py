@@ -63,7 +63,7 @@ parser.add_argument('--store_summary', action='store_true',
                     help='store summary')
 parser.add_argument('--ckpt_path', type=str, default='ckpt',
                     help='directory path to save model parameters')
-parser.add_argument('--ckpt_name', type=str, default='seq2seq',
+parser.add_argument('--ckpt_name', type=str, default='',
                     help='checkpoint file name (`{ckpt_name}-{step}.ckpt`)')
 parser.add_argument('--restore', type=str, default=None,
                     help='file path for restore parameters')
