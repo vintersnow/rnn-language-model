@@ -32,5 +32,6 @@ Fromat: `{word} {frequency}`
 ## Execute
 
 ```
+mkdir ckpt runs
 python train.py --num_iters 100 --store_summary --data_path 'path/to/data*' --vocab_file 'path/to/vocab'
 ```

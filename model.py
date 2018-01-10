@@ -25,16 +25,12 @@ class Model(nn.Module):
             hps.hidden_size,
             hps.num_layers,
             bidirectional=False,
-            dropout=hps.dropout
-        )
+            dropout=hps.dropout)
 
         self._out_layer = nn.Linear(hps.hidden_size, vocab_size)
         self._s = nn.LogSoftmax(2)
 
-    def forward(self,
-                inputs,
-                inputs_lens,
-                mode='train'):
+    def forward(self, inputs, inputs_lens, mode='train'):
         '''
         B: batch_size
         U: unite_size (e.g. hidden_size)
@@ -74,11 +70,12 @@ class Model(nn.Module):
             if hps.use_cuda:
                 input = input.cuda()
             hidden = zero_var(self._hps.num_layers, 1, self._hps.hidden_size)
+            # hidden.data.uniform_(-1e-1, 1e-1)
             for i in range(max_steps):
                 embd = self._embd_layer(input.unsqueeze(0))  # (1*U)
                 output, hidden = self._rnn(embd, hidden)
-                output = self._out_layer(output)  # (1*Vocab)
-                output = self._s(output.unsqueeze(0)).squeeze()  # (1*1*V) -> (V)
+                output = self._out_layer(output)  # (1*1*Vocab)
+                output = self._s(output).squeeze()  # (1*1*V) -> (V)
                 outputs[i] = output
                 _, input = torch.max(output, 0)
                 if input.data[0] == stop_id:
@@ -86,3 +83,4 @@ class Model(nn.Module):
             return outputs
         else:
             raise ValueError('Unknown mode: %s' % mode)
+

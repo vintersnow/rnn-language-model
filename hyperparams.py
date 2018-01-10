@@ -9,7 +9,7 @@ parser.add_argument('--vocab_size', type=int, default=10000,
                     help='max number of vocabulary')
 parser.add_argument('--vocab_file', type=str, default='data/vocab',
                     help='path to vocabulary file')
-parser.add_argument('--data_path', type=str, default='data/output-*',
+parser.add_argument('--data_path', type=str, default='data/train-*',
                     help='path to data file or directory')
 parser.add_argument('--single_pass', action='store_true',
                     help='If the flag is setted, applay example only once')

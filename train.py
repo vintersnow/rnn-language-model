@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from hyperparams import hps
 from tensorboardX import SummaryWriter
-from data_batcher import Batcher, Vocab, PAD_TOKEN, restore_text
-from utils import (get_logger, DEBUG, OneLinePrint, optimzier, Saver, tonp)
+from data_batcher import Batcher, Vocab
+from utils import (get_logger, DEBUG, OneLinePrint, optimzier, Saver, Timer)
 import numpy as np
 
 logger = get_logger(__name__, DEBUG)
@@ -21,7 +21,7 @@ def train():
     logger.info('end building batch data')
     logger.info('vocab size: %s' % vocab.size())
 
-    criterion = nn.NLLLoss(ignore_index=vocab.word2id(PAD_TOKEN))
+    criterion = nn.NLLLoss(ignore_index=vocab.pad_id())
 
     model = Model(vocab, hps)
     if hps.use_cuda:
@@ -38,9 +38,11 @@ def train():
     if hps.store_summary:
         writer = SummaryWriter(comment='_' + hps.ckpt_name)
 
-    loss_sum = 0
+    # loss_sum = 0
 
     logger.info('----Start training----')
+    timer = Timer()
+    timer.start()
     for step in range(hps.start_step, hps.num_iters + 1):
         # # Decay learning rate
         # if step % hps.lr_decay_step == 0:
@@ -60,10 +62,10 @@ def train():
         # Backward ------------------------------------------------------------
         loss.backward()
         # gradient clipping
-        nn.utils.clip_grad_norm(model.parameters(), hps.clip)
+        global_norm = nn.utils.clip_grad_norm(model.parameters(), hps.clip)
         opt.step()
 
-        loss_sum += loss.data[0]
+        # loss_sum += loss.data[0]
 
         # Utils ---------------------------------------------------------------
         # save checkpoint
@@ -71,29 +73,30 @@ def train():
             saver.save(step, loss.data[0])
             olp.write('save checkpoint (step=%d)\n' % step)
 
-        # print the train loss
+        # print the train loss and ppl
+        ppl = np.exp(loss.data[0])
         olp.write('step %s train loss: %f, ppl: %8.2f' %
-                  (step, loss.data[0], np.exp(loss.data[0])))
+                  (step, loss.data[0], ppl))
         olp.flush()
 
         # store summary
         if hps.store_summary and (step - 1) % hps.summary_steps == 0:
-            writer.add_scalar('summ_loss', loss, step)
+            writer.add_scalar('loss', loss, step)
+            writer.add_scalar('ppl', ppl, step)
+            writer.add_scalar('global_norm', global_norm, step)
+            if step - 1 != 0:
+                lap_time, _ = timer.lap('summary')
+                steps = hps.summary_steps
+                writer.add_scalar('avg time/step', lap_time / steps, step)
 
         # print output and target
-        if step % hps.summary_steps == 0:
-            logger.info('\nstep:%d~%d avg loss: %f', step - hps.summary_steps,
-                        step, loss_sum / hps.summary_steps)
-            loss_sum = 0
+        # if step % hps.summary_steps == 0:
+        #     logger.info('\nstep:%d~%d avg loss: %f', step - hps.summary_steps,
+        #                 step, loss_sum / hps.summary_steps)
+        #     loss_sum = 0
 
     if hps.store_summary:
         writer.close()
-
-    logger.info('start infer mode')
-    outputs = model(None, None, 'infer')
-    _, pred = torch.max(outputs, 1)
-    pred = tonp(pred)
-    logger.info('pred: %s' % restore_text(pred, vocab))
 
 
 if __name__ == '__main__':

@@ -7,13 +7,14 @@ import random
 import re
 import torch
 from torch.autograd import Variable
+from collections import Counter
 
 from collections import namedtuple
 
 from utils import get_logger, INFO
 
 # logger = get_logger(__name__, DEBUG)
-logger = get_logger(__name__, INFO, 'logs/batcher.log')
+logger = get_logger(__name__, INFO, 'runs/batcher.log')
 
 # <s> and </s> are used in the data files to segment the abstracts into sentences. They don't receive vocab ids.
 SENTENCE_START = '<s>'
@@ -141,6 +142,11 @@ class Example(object):
         self.dec_input, self.target = self.get_dec_inp_targ_seqs(
             abs_ids, hps.max_dec_steps)
         self.dec_len = len(self.dec_input)
+
+        self.unk_count = 0
+        self.unk_count += Counter(self.enc_input)[vocab.word2id(UNKNOWN_TOKEN)]
+        self.unk_count += Counter(self.dec_input)[vocab.word2id(UNKNOWN_TOKEN)]
+        self.unk_rate = self.unk_count / (self.enc_len + self.dec_len)
 
         # Store the original strings
         self.original_article = article
@@ -380,7 +386,8 @@ class Batcher(object):
             article = clean_sent.sub('', article)
             abstract = clean_sent.sub('', abstract)
             example = Example(article, abstract, self._vocab, self._hps)
-            self._example_queue.put(example)
+            if example.unk_rate < 0.1:
+                self._example_queue.put(example)
 
     def fill_batch_queue(self):
         """exampleキューから収得して、入力長でソートした後にBatchを作成してbatchキューに入れる"""
@@ -450,13 +457,13 @@ class Batcher(object):
                                      self.fill_batch_queue)
 
 
-def restore_text(data, vocab):
+def restore_text(data, vocab, skips=[]):
     """
     Args:
         data: (sequence_length) list or ndarray include word id (integer)
         vocab:
     """
-    text = ' '.join([vocab.id2word(id) for id in data])
+    text = ' '.join([vocab.id2word(id) for id in data if int(id) not in skips])
     return text
 
 
@@ -465,8 +472,8 @@ if __name__ == '__main__':
     # raise ValueError('')
 
     print('----')
-    # vocab = Vocab('data/vocab', 50000)
-    vocab = Vocab('data/vocab', 10000)
+    vocab = Vocab('data/vocab', 50000)
+    # vocab = Vocab('data/vocab', 10000)
     print('vocab size', vocab.size())
 
     hps_dict = {
@@ -480,13 +487,13 @@ if __name__ == '__main__':
     }
     hps = namedtuple("HParams", hps_dict.keys())(**hps_dict)
     # batcher = Batcher('data/test.bin', vocab, hps, False)
-    batcher = Batcher('data/output*', vocab, hps, hps.single_pass, text_generator)
+    batcher = Batcher('data/train*', vocab, hps, hps.single_pass, text_generator)
 
     for step in range(1000):
         time.sleep(0.5)
         batch = batcher.next_batch()
         print(batch.enc_batch.shape, batch.dec_batch.shape,
-              batch.target_batch.shape)
+              batch.target_batch.outputshape)
         for id in batch.enc_batch[0]:
             print(vocab.id2word(id), end=' ')
         for id in batch.target_batch[0]:
